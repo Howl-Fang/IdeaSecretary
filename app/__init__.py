@@ -1,0 +1,1 @@
+"""IdeaSecretary application package."""

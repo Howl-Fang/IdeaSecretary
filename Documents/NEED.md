@@ -69,3 +69,36 @@ Chat Box; with speech to choose; can paste pictures. Urls are also supported.
 5. 可以导出数据库为正常可读的zip文件，也可以生成思维导图。
 6. 默认一个库，但是可以创建多个库。库之间没有联系，但可以共用媒体资源，共同维护媒体资源索引。
 7. 每隔一定操作数，备份数据库。删除过时的数据库。
+
+---
+
+## 开发清单与完成情况（自动追加）
+
+### 已完成
+- [x] 使用 `uv` 初始化项目依赖管理（新增 `pyproject.toml` 与 `uv.lock`），并验证测试可通过。
+- [x] 基于文档创建可运行后端（FastAPI + SQLite + ORM）。
+- [x] 实现知识库管理（创建/列表）。
+- [x] 实现 Idea 入库（支持 source_type/source_value，自动 AI 整理并存储 markdown）。
+- [x] 实现树结构查询接口（`/api/ideas/library/{library_id}/tree`）。
+- [x] 实现媒体资源索引与存储（UUID 命名）及回收站软删除。
+- [x] 实现基础索引维护与问答接口。
+- [x] 实现导出 zip 与 mindmap 文本接口。
+- [x] 实现按操作计数触发数据库备份并清理旧备份。
+- [x] 实现基础 UI：英语默认 + 中文切换，深浅色切换，Treasury 输入页面。
+- [x] 产出产品文档到 `Documents/Product Document/MVP_Product_Document.md`。
+- [x] 记录需求文档实现进展（本节）。
+
+### 未完成 / 下一步
+- [ ] 登录与注册完整流程（当前仅预留页面概念）。
+- [ ] 语音输入与图片内容理解（当前仅支持媒体上传与引用）。
+- [ ] 更强索引（FTS/向量）与推荐统计模块。
+- [ ] UI 组件化与完整仪表盘交互。
+
+### 对需求的改进建议（待你确认）
+1. 第一阶段先收敛到“文本 + URL + 问答 + 导出”闭环，降低多模态复杂度。
+2. 明确导出格式优先级（Mermaid / XMind / FreeMind）避免后续重复开发。
+3. 明确账号体系（邮箱密码 or OAuth）以便尽早设计数据模型。
+
+### 需求变更追踪说明
+- 当前文档版本标识：`Ver. 0.1`
+- 已将本次实现与建议固定在：`Documents/Product Document/MVP_Product_Document.md`
