@@ -1,11 +1,49 @@
-.DS_Store
-*/.DS_Store
-._*
-*/._*
-
-.venv/
-*/.venv/
-*/*cache*/
-*cache*
-*/node_modules/
+# Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Media/uploads
+uploads/
+media/
+*.tmp
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.turbo/

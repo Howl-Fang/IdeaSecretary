@@ -1,0 +1,16 @@
+{
+  "name": "idea-secretary",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered knowledge organization system",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=frontend & npm run dev --workspace=backend",
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+    "test": "npm run test --workspace=frontend && npm run test --workspace=backend"
+  }
+}
