@@ -7,12 +7,32 @@ An AI-powered knowledge management system that helps users collect, organize, an
 - 📝 **Multi-format Input**: Text, images, links, and voice
 - 🧠 **AI-Powered Organization**: Automatic knowledge categorization and suggestions
 - 🌳 **Tree Structure**: Hierarchical knowledge organization
+- 📊 **Visualization**:
+  - **Tree View** (Default): Expandable/collapsible hierarchical tree display
+  - **Mindmap View**: Visual graph representation with SVG rendering
+  - Both views support dark mode and responsive design
 - 🔍 **Full-Text Search**: Fast query indexing
 - 🌍 **Multi-language**: English and Chinese with auto-detection
 - 🌓 **Dark Mode**: Comfortable viewing in any lighting condition
 - 💾 **Auto-Backup**: Automatic backups every 10 operations
 - 📦 **Data Export**: Export knowledge base as ZIP
-- 🗺️ **Mindmap**: Visualize knowledge structure
+- 🗺️ **Smart Organization**: Automatic knowledge categorization
+
+## Visualization Features
+
+### Tree View (Default)
+- Expandable/collapsible nodes showing parent-child relationships
+- Word count and tag display for each idea
+- Quick action buttons (edit, delete, add child)
+- Smooth animations and intuitive navigation
+
+### Mindmap View
+- Visual force-directed graph layout
+- Interactive hover tooltips with full idea details
+- Zoom and pan controls
+- Perfect for exploring knowledge structure
+
+👉 **See [TREE_MINDMAP_GUIDE.md](TREE_MINDMAP_GUIDE.md) for detailed usage instructions**
 
 ## Architecture
 
