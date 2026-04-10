@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: idea-secretary-backend
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: development
+      SECRET_KEY: dev-secret-key-change-in-production
+      JWT_SECRET_KEY: dev-jwt-secret-key-change-in-production
+      DATABASE_URL: sqlite:///ideasecretary.db
+    volumes:
+      - ./backend:/app
+      - backend-db:/app/data
+      - backend-backups:/app/backups
+      - backend-media:/app/media_storage
+    command: python app.py
+    networks:
+      - idea-secretary-network
+
+  frontend:
+    build: ./frontend
+    container_name: idea-secretary-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+    networks:
+      - idea-secretary-network
+
+volumes:
+  backend-db:
+  backend-backups:
+  backend-media:
+
+networks:
+  idea-secretary-network:
+    driver: bridge
