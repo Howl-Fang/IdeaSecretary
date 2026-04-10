@@ -1,175 +1,217 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ZoomIn, ZoomOut, Plus, Edit2, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { ZoomIn, ZoomOut } from 'lucide-react';
 
 const MindmapView = ({ ideas, onEdit, onDelete, onAddChild, baseName }) => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [pan, setPan] = useState({ x: 50, y: 50 });
   const [hoveredNode, setHoveredNode] = useState(null);
-  const nodePositions = useRef(new Map());
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
 
-  // Calculate node positions using force-directed layout
-  const calculateLayout = (ideas) => {
-    const positions = new Map();
-    let y = 0;
+  // Calculate node positions using hierarchical tree layout
+  const calculateLayout = useMemo(() => {
+    return (ideas) => {
+      const positions = new Map();
+      const nodeHeight = 80;
+      const nodeWidth = 140;
+      const horizontalSpacing = 200;
+      const verticalSpacing = 120;
 
-    const traverse = (ideaList, x = 0, spacing = 250) => {
-      ideaList.forEach((idea, index) => {
-        const nodeX = x + index * spacing;
-        const nodeY = y;
-        positions.set(idea.id, { x: nodeX, y: nodeY });
-
-        if (idea.children && idea.children.length > 0) {
-          y += 150;
-          traverse(idea.children, nodeX - (idea.children.length * spacing) / 2, spacing * 0.7);
-          y += 150;
+      let maxDepth = 0;
+      const calculateDepth = (idea, depth = 0) => {
+        maxDepth = Math.max(maxDepth, depth);
+        if (idea.children) {
+          idea.children.forEach(child => calculateDepth(child, depth + 1));
         }
-      });
-    };
+      };
+      ideas.forEach(idea => calculateDepth(idea));
 
-    traverse(ideas, 100);
-    return positions;
-  };
+      let y = 50;
+      const processLevel = (ideaList, depth = 0, parentX = null) => {
+        if (ideaList.length === 0) return;
+
+        const totalWidth = ideaList.length * horizontalSpacing;
+        const startX = Math.max(50, parentX ? parentX - totalWidth / 2 : 50);
+
+        ideaList.forEach((idea, index) => {
+          const x = startX + index * horizontalSpacing;
+          positions.set(idea.id, { x, y });
+
+          if (idea.children && idea.children.length > 0) {
+            const childCenterX = x + nodeWidth / 2;
+            processLevel(idea.children, depth + 1, childCenterX);
+          }
+        });
+
+        y += verticalSpacing;
+      };
+
+      // Process all levels
+      processLevel(ideas, 0);
+      return positions;
+    };
+  }, []);
+
+  const nodePositions = useMemo(() => {
+    return calculateLayout(ideas);
+  }, [ideas, calculateLayout]);
 
   // Generate SVG path from parent to child
-  const generatePath = (parentPos, childPos) => {
-    const controlX = (parentPos.x + childPos.x) / 2;
-    return `M ${parentPos.x + 60} ${parentPos.y + 30} Q ${controlX} ${(parentPos.y + childPos.y) / 2} ${childPos.x} ${childPos.y}`;
+  const generateConnector = (parentPos, childPos) => {
+    const x1 = parentPos.x + 70;
+    const y1 = parentPos.y + 40;
+    const x2 = childPos.x + 70;
+    const y2 = childPos.y;
+
+    // Bezier curve path
+    const controlY = (y1 + y2) / 2;
+    return `M ${x1} ${y1} C ${x1} ${controlY}, ${x2} ${controlY}, ${x2} ${y2}`;
   };
 
-  // Render nodes and connections
-  const renderNodes = (ideaList, parentPos = null) => {
-    const nodes = [];
-    const connections = [];
+  // Render all connectors recursively
+  const renderConnectors = (ideaList) => {
+    const connectors = [];
 
-    const traverse = (ideas) => {
-      ideas.forEach((idea) => {
-        const pos = nodePositions.current.get(idea.id);
-        if (!pos) return;
-
-        // Draw connection from parent to child
-        if (parentPos) {
-          connections.push(
-            <path
-              key={`conn-${idea.id}`}
-              d={generatePath(parentPos, pos)}
-              stroke="#cbd5e1"
-              strokeWidth={2}
-              fill="none"
-              className="dark:stroke-slate-600"
-            />
-          );
-        }
-
-        // Draw node
-        const isHovered = hoveredNode === idea.id;
-        const wordCount = idea.content ? idea.content.split(/\s+/).length : 0;
-
-        nodes.push(
-          <g
-            key={idea.id}
-            className="cursor-pointer"
-            onMouseEnter={() => setHoveredNode(idea.id)}
-            onMouseLeave={() => setHoveredNode(null)}
-          >
-            {/* Node background */}
-            <rect
-              x={pos.x}
-              y={pos.y}
-              width={120}
-              height={60}
-              rx={8}
-              fill={isHovered ? '#818cf8' : '#ffffff'}
-              stroke={isHovered ? '#6366f1' : '#e2e8f0'}
-              strokeWidth={2}
-              className="dark:fill-slate-700 dark:stroke-slate-600"
-            />
-
-            {/* Node text */}
-            <text
-              x={pos.x + 60}
-              y={pos.y + 20}
-              textAnchor="middle"
-              fontSize={12}
-              fontWeight={600}
-              fill={isHovered ? '#ffffff' : '#1f2937'}
-              className="dark:fill-white pointer-events-none"
-            >
-              {idea.title.length > 12 ? idea.title.substring(0, 12) + '...' : idea.title}
-            </text>
-
-            <text
-              x={pos.x + 60}
-              y={pos.y + 40}
-              textAnchor="middle"
-              fontSize={10}
-              fill={isHovered ? '#e5e7eb' : '#6b7280'}
-              className="dark:fill-gray-400 pointer-events-none"
-            >
-              {wordCount} words
-            </text>
-
-            {/* Tooltip */}
-            {isHovered && (
-              <g>
-                <rect
-                  x={pos.x + 130}
-                  y={pos.y - 10}
-                  width={200}
-                  height={80}
-                  rx={6}
-                  fill="#1f2937"
-                  className="dark:fill-slate-900"
-                  opacity={0.95}
-                />
-                <text
-                  x={pos.x + 140}
-                  y={pos.y + 10}
-                  fontSize={12}
-                  fontWeight={600}
-                  fill="#ffffff"
-                  className="pointer-events-none"
-                >
-                  {idea.title}
-                </text>
-                <text
-                  x={pos.x + 140}
-                  y={pos.y + 30}
-                  fontSize={10}
-                  fill="#d1d5db"
-                  className="pointer-events-none"
-                >
-                  {idea.content ? idea.content.substring(0, 30) + '...' : 'No content'}
-                </text>
-              </g>
-            )}
-          </g>
-        );
-
-        // Traverse children
-        if (idea.children && idea.children.length > 0) {
-          const childResults = traverse(idea.children);
-          nodes.push(...childResults.nodes);
-          connections.push(...childResults.connections);
-        }
-
-        return { nodes, connections };
-      });
-
-      return { nodes, connections };
+    const traverse = (idea) => {
+      if (idea.children && idea.children.length > 0) {
+        const parentPos = nodePositions.get(idea.id);
+        idea.children.forEach(child => {
+          const childPos = nodePositions.get(child.id);
+          if (parentPos && childPos) {
+            connectors.push(
+              <path
+                key={`line-${idea.id}-${child.id}`}
+                d={generateConnector(parentPos, childPos)}
+                stroke="#94a3b8"
+                strokeWidth={2}
+                fill="none"
+                strokeLinecap="round"
+                className="dark:stroke-slate-500"
+              />
+            );
+          }
+          traverse(child);
+        });
+      }
     };
 
-    const result = traverse(ideas);
-    return [result.connections, result.nodes];
+    ideaList.forEach(idea => traverse(idea));
+    return connectors;
   };
 
-  // Calculate layout on mount and when ideas change
-  useEffect(() => {
-    if (ideas.length > 0) {
-      nodePositions.current = calculateLayout(ideas);
-    }
-  }, [ideas]);
+  // Render all nodes recursively
+  const renderAllNodes = (ideaList) => {
+    const nodes = [];
+
+    const traverse = (idea) => {
+      const pos = nodePositions.get(idea.id);
+      if (!pos) return;
+
+      const isHovered = hoveredNode === idea.id;
+      const wordCount = idea.content ? idea.content.split(/\s+/).length : 0;
+      const hasChildren = idea.children && idea.children.length > 0;
+
+      nodes.push(
+        <g
+          key={idea.id}
+          className="cursor-pointer"
+          onMouseEnter={() => setHoveredNode(idea.id)}
+          onMouseLeave={() => setHoveredNode(null)}
+        >
+          {/* Node background */}
+          <rect
+            x={pos.x}
+            y={pos.y}
+            width={140}
+            height={40}
+            rx={6}
+            fill={isHovered ? '#818cf8' : '#ffffff'}
+            stroke={isHovered ? '#6366f1' : '#cbd5e1'}
+            strokeWidth={2}
+            className="dark:fill-slate-700 dark:stroke-slate-600 transition-all"
+          />
+
+          {/* Node text */}
+          <text
+            x={pos.x + 70}
+            y={pos.y + 15}
+            textAnchor="middle"
+            fontSize={11}
+            fontWeight={600}
+            fill={isHovered ? '#ffffff' : '#1f2937'}
+            className="dark:fill-white pointer-events-none"
+          >
+            {idea.title.length > 14 ? idea.title.substring(0, 14) + '...' : idea.title}
+          </text>
+
+          <text
+            x={pos.x + 70}
+            y={pos.y + 28}
+            textAnchor="middle"
+            fontSize={9}
+            fill={isHovered ? '#e5e7eb' : '#6b7280'}
+            className="dark:fill-gray-400 pointer-events-none"
+          >
+            {wordCount} words {hasChildren ? `• ${idea.children.length}` : ''}
+          </text>
+
+          {/* Hover tooltip */}
+          {isHovered && (
+            <g>
+              <rect
+                x={pos.x + 150}
+                y={pos.y - 20}
+                width={220}
+                height={90}
+                rx={8}
+                fill="#1f2937"
+                opacity={0.95}
+                className="dark:fill-slate-900"
+              />
+              <text
+                x={pos.x + 160}
+                y={pos.y - 5}
+                fontSize={12}
+                fontWeight={600}
+                fill="#ffffff"
+                className="pointer-events-none"
+              >
+                {idea.title}
+              </text>
+              <text
+                x={pos.x + 160}
+                y={pos.y + 15}
+                fontSize={10}
+                fill="#d1d5db"
+                className="pointer-events-none"
+              >
+                {idea.content ? idea.content.substring(0, 40) + '...' : 'No content'}
+              </text>
+              <text
+                x={pos.x + 160}
+                y={pos.y + 35}
+                fontSize={9}
+                fill="#9ca3af"
+                className="pointer-events-none"
+              >
+                {wordCount} words {idea.tags && idea.tags.length > 0 ? `• ${idea.tags.join(', ')}` : ''}
+              </text>
+            </g>
+          )}
+        </g>
+      );
+
+      // Traverse children
+      if (idea.children && idea.children.length > 0) {
+        idea.children.forEach(child => traverse(child));
+      }
+    };
+
+    ideaList.forEach(idea => traverse(idea));
+    return nodes;
+  };
 
   // Handle zoom
   const handleZoom = (direction) => {
@@ -179,26 +221,40 @@ const MindmapView = ({ ideas, onEdit, onDelete, onAddChild, baseName }) => {
     });
   };
 
-  // Handle pan
-  const handlePan = (e) => {
-    if (e.buttons !== 2 && !e.ctrlKey) return; // Right click or Ctrl+drag
-    setPan(prev => ({
-      x: prev.x + e.movementX,
-      y: prev.y + e.movementY
-    }));
+  // Handle pan with mouse
+  const handleMouseDown = (e) => {
+    if (e.button === 2 || e.ctrlKey) { // Right click or Ctrl+click
+      setIsDragging(true);
+      dragStart.current = { x: e.clientX, y: e.clientY };
+    }
   };
 
-  const [connections, nodeGraphics] = renderNodes(ideas);
-  const width = Math.max(1200, Math.max(...Array.from(nodePositions.current.values()).map(p => p.x)) + 200);
-  const height = Math.max(800, Math.max(...Array.from(nodePositions.current.values()).map(p => p.y)) + 150);
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      setPan(prev => ({
+        x: prev.x + dx,
+        y: prev.y + dy
+      }));
+      dragStart.current = { x: e.clientX, y: e.clientY };
+    }
+  };
 
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Calculate SVG dimensions
+  const svgWidth = 1400;
+  const svgHeight = 900;
   return (
     <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{baseName}</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {ideas.length} root ideas • Drag to pan • Scroll wheel to zoom
+            {ideas.length} root ideas • Right-click drag to pan • Use zoom buttons
           </p>
         </div>
         <div className="flex gap-2">
@@ -226,31 +282,49 @@ const MindmapView = ({ ideas, onEdit, onDelete, onAddChild, baseName }) => {
       ) : (
         <div
           ref={containerRef}
-          className="border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 overflow-auto"
-          style={{ height: '600px' }}
-          onMouseMove={handlePan}
-          onContextMenu={e => e.preventDefault()}
+          className="border border-gray-200 dark:border-slate-700 rounded-lg bg-gradient-to-b from-gray-50 to-white dark:from-slate-800 dark:to-slate-900 overflow-hidden"
+          style={{ height: '600px', cursor: isDragging ? 'grabbing' : 'grab' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onContextMenu={(e) => e.preventDefault()}
         >
           <svg
             ref={svgRef}
-            width={width}
-            height={height}
+            width={svgWidth}
+            height={svgHeight}
             style={{
-              transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: '0 0',
-              cursor: 'grab',
+              userSelect: 'none',
             }}
+            className="select-none"
           >
-            {/* Connections (drawn first, behind nodes) */}
-            {connections}
+            <defs>
+              <marker
+                id="arrowhead"
+                markerWidth="10"
+                markerHeight="7"
+                refX="9"
+                refY="3.5"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+              </marker>
+            </defs>
+
+            {/* Connectors (drawn first, behind nodes) */}
+            {renderConnectors(ideas)}
+
             {/* Nodes (drawn on top) */}
-            {nodeGraphics}
+            {renderAllNodes(ideas)}
           </svg>
         </div>
       )}
 
       <div className="mt-4 p-4 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-lg text-sm text-gray-700 dark:text-gray-300">
-        <p>💡 <strong>How to use:</strong> Right-click and drag to pan the mindmap, use zoom buttons to adjust view.</p>
+        <p>💡 <strong>Tips:</strong> Right-click and drag to pan, use zoom buttons to adjust view. Hover over nodes to see full details.</p>
       </div>
     </div>
   );
