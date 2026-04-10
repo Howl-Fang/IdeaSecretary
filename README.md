@@ -1,6 +1,8 @@
-# IdeaSecretary (烂笔头) - AI Knowledge Organization System
+# IdeaSecretary  - AI Knowledge Organization System
 
 An AI-powered knowledge management system that helps users collect, organize, and retrieve ideas through various input formats (text, images, links, voice).
+
+Project Link: [Github](https://github.com/howl-fang/IdeaSecretary)
 
 ## Features
 
@@ -224,7 +226,7 @@ Deploy frontend build to nginx or CDN.
 
 ## Test Users
 
-Demo credentials (to be created):
+Demo credentials (to be created using `create_test_data.py` under backend folder):
 
 - Username: `demo`
 - Password: `demo123456`
