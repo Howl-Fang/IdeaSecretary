@@ -2,6 +2,7 @@ import os
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from flask_cors import CORS
 from models import db
 from config import config
 from datetime import datetime
@@ -18,6 +19,7 @@ def create_app(config_name='development'):
     db.init_app(app)
     jwt = JWTManager(app)
     migrate = Migrate(app, db)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # Register error handlers
     @app.errorhandler(404)
@@ -35,12 +37,14 @@ def create_app(config_name='development'):
     from routes.media import media_bp
     from routes.user import user_bp
     from routes.search import search_bp
+    from routes.ai import ai_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(ideas_bp, url_prefix='/api/ideas')
     app.register_blueprint(media_bp, url_prefix='/api/media')
     app.register_blueprint(user_bp, url_prefix='/api/user')
     app.register_blueprint(search_bp, url_prefix='/api/search')
+    app.register_blueprint(ai_bp, url_prefix='/api/ai')
     
     # Health check endpoint
     @app.route('/api/health', methods=['GET'])

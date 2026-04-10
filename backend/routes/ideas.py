@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Idea, IdeaBase, SearchIndex
+from models import db, Idea, IdeaBase, SearchIndex, User
+from services.backup_service import BackupService
 import json
 from datetime import datetime
 
@@ -58,6 +59,7 @@ def get_idea_tree(base_id):
 def create_idea(base_id):
     """Create new idea"""
     user_id = get_jwt_identity()
+    user = User.query.get(user_id)
     base = IdeaBase.query.filter_by(id=base_id, user_id=user_id).first()
     
     if not base:
@@ -92,6 +94,9 @@ def create_idea(base_id):
     db.session.add(search_entry)
     
     db.session.commit()
+    
+    # Increment operation count and check for backup
+    BackupService.increment_operation_count(user)
     
     return jsonify({
         'id': idea.id,
@@ -129,6 +134,7 @@ def get_idea(idea_id):
 def update_idea(idea_id):
     """Update idea"""
     user_id = get_jwt_identity()
+    user = User.query.get(user_id)
     idea = db.session.query(Idea).join(IdeaBase).filter(
         Idea.id == idea_id,
         IdeaBase.user_id == user_id
@@ -157,6 +163,9 @@ def update_idea(idea_id):
     
     db.session.commit()
     
+    # Increment operation count and check for backup
+    BackupService.increment_operation_count(user)
+    
     return jsonify({
         'id': idea.id,
         'updated_at': idea.updated_at.isoformat()
@@ -167,6 +176,7 @@ def update_idea(idea_id):
 def delete_idea(idea_id):
     """Delete idea"""
     user_id = get_jwt_identity()
+    user = User.query.get(user_id)
     idea = db.session.query(Idea).join(IdeaBase).filter(
         Idea.id == idea_id,
         IdeaBase.user_id == user_id
@@ -183,5 +193,8 @@ def delete_idea(idea_id):
     base.total_word_count -= word_count
     
     db.session.commit()
+    
+    # Increment operation count and check for backup
+    BackupService.increment_operation_count(user)
     
     return jsonify({'message': 'Idea deleted'}), 200
