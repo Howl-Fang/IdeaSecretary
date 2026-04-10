@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ideasAPI, userAPI } from '../services/api';
-import { FileText, Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export default function TreasuryPage() {
   const { t } = useTranslation();
